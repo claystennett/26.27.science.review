@@ -1,1 +1,447 @@
 # 26.27.science.review
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Element Board — Science Jeopardy</title>
+<style>
+  :root{
+    --ink:#0B1D26;
+    --panel:#0F2A38;
+    --panel-2:#123444;
+    --teal:#2C8C8C;
+    --teal-bright:#4FB3B3;
+    --amber:#E8A33D;
+    --amber-dim:#B87F2C;
+    --green:#5FA777;
+    --cream:#F3EFE4;
+    --cream-dim:#C9C3B2;
+    --danger:#C1543A;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:radial-gradient(circle at 50% -10%, #163A4A 0%, var(--ink) 55%);
+    color:var(--cream);
+    font-family: 'Georgia', 'Times New Roman', serif;
+    overflow-x:hidden;
+  }
+  .wrap{ max-width:1200px; margin:0 auto; padding:28px 20px 60px; }
+
+  header{ text-align:center; margin-bottom:22px; position:relative; }
+  .eyebrow{
+    font-family:'Courier New', monospace; letter-spacing:.35em; font-size:12px;
+    color:var(--teal-bright); text-transform:uppercase; margin-bottom:6px;
+  }
+  h1{
+    font-size:44px; margin:0; font-weight:700; letter-spacing:.5px;
+    color:var(--cream);
+  }
+  h1 span{ color:var(--amber); }
+  .subtitle{ color:var(--cream-dim); font-size:14px; margin-top:8px; font-family:'Courier New', monospace; }
+
+  /* Scoreboard */
+  .scoreboard{
+    display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin:22px 0 28px;
+  }
+  .team{
+    background:var(--panel); border:1px solid #1E4E5E; border-radius:6px;
+    padding:10px 16px; min-width:150px; text-align:center; position:relative;
+  }
+  .team-name{
+    font-family:'Courier New', monospace; font-size:11px; letter-spacing:.15em;
+    color:var(--teal-bright); text-transform:uppercase; margin-bottom:4px;
+    background:none; border:none; color:var(--teal-bright); text-align:center; width:100%;
+    font-family:'Courier New', monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  }
+  .team-score{ font-size:28px; font-weight:700; color:var(--amber); font-family:'Georgia',serif; }
+  .team-btns{ display:flex; gap:6px; justify-content:center; margin-top:6px; }
+  .team-btns button{
+    width:26px; height:26px; border-radius:4px; border:1px solid #2A5B6B;
+    background:var(--panel-2); color:var(--cream); cursor:pointer; font-size:14px; line-height:1;
+  }
+  .team-btns button:hover{ background:var(--teal); }
+  .add-team{
+    display:flex; align-items:center; justify-content:center; min-width:60px;
+    border:1px dashed #2A5B6B; border-radius:6px; cursor:pointer; color:var(--cream-dim);
+    font-size:22px; background:transparent;
+  }
+  .add-team:hover{ color:var(--amber); border-color:var(--amber); }
+
+  /* Board */
+  .board{
+    display:grid; grid-template-columns:repeat(5, 1fr); gap:8px;
+  }
+  .cat-header{
+    background:var(--teal); color:var(--ink); border-radius:4px;
+    padding:14px 8px; text-align:center; font-weight:700; font-size:14px;
+    letter-spacing:.03em; min-height:64px; display:flex; align-items:center; justify-content:center;
+    text-transform:uppercase; font-family:'Georgia',serif; box-shadow:inset 0 -3px 0 rgba(0,0,0,.15);
+  }
+  .clue-tile{
+    position:relative;
+    background:var(--panel); border:1px solid #1E4E5E; border-radius:4px;
+    min-height:78px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:transform .12s ease, background .12s ease;
+  }
+  .clue-tile:hover{ background:var(--panel-2); transform:translateY(-2px); }
+  .clue-tile.done{
+    cursor:default; background:transparent; border-color:#132A34;
+  }
+  .clue-tile.done:hover{ transform:none; }
+  .clue-value{
+    font-family:'Courier New', monospace; font-weight:700; font-size:26px; color:var(--amber);
+  }
+  .clue-tile.done .clue-value{ display:none; }
+  .tile-corner{
+    position:absolute; top:5px; left:7px; font-family:'Courier New', monospace;
+    font-size:9px; color:var(--teal-bright); opacity:.6;
+  }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,16,22,.92);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .overlay.active{ display:flex; }
+  .clue-card{
+    background:linear-gradient(180deg, var(--panel-2), var(--panel));
+    border:1px solid var(--teal); border-radius:10px; max-width:780px; width:100%;
+    padding:44px 40px; text-align:center; position:relative;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .clue-cat{
+    font-family:'Courier New', monospace; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--teal-bright); font-size:13px; margin-bottom:6px;
+  }
+  .clue-val-tag{
+    font-family:'Courier New', monospace; color:var(--amber); font-size:15px; margin-bottom:20px;
+  }
+  .clue-text{ font-size:26px; line-height:1.45; margin:10px 0 26px; color:var(--cream); }
+  .answer-text{
+    font-size:22px; color:var(--amber); font-weight:700; display:none; margin-bottom:26px;
+    border-top:1px solid #2A5B6B; padding-top:20px;
+  }
+  .answer-text.show{ display:block; }
+  .dd-banner{
+    display:none; font-family:'Georgia', serif; font-weight:700; font-size:34px;
+    color:var(--amber); letter-spacing:.05em; margin-bottom:14px;
+  }
+  .dd-banner.show{ display:block; }
+  .wager-row{ display:none; align-items:center; justify-content:center; gap:8px; margin-bottom:20px; }
+  .wager-row.show{ display:flex; }
+  .wager-row input{
+    width:110px; padding:8px 10px; border-radius:5px; border:1px solid #2A5B6B;
+    background:var(--ink); color:var(--cream); font-size:16px; text-align:center;
+    font-family:'Courier New', monospace;
+  }
+  .btn-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .btn{
+    border:none; border-radius:6px; padding:10px 18px; font-size:14px; cursor:pointer;
+    font-family:'Courier New', monospace; letter-spacing:.05em; text-transform:uppercase;
+  }
+  .btn-primary{ background:var(--teal); color:var(--ink); font-weight:700; }
+  .btn-primary:hover{ background:var(--teal-bright); }
+  .btn-ghost{ background:transparent; color:var(--cream-dim); border:1px solid #2A5B6B; }
+  .btn-ghost:hover{ color:var(--cream); border-color:var(--cream-dim); }
+  .close-x{
+    position:absolute; top:14px; right:16px; background:none; border:none; color:var(--cream-dim);
+    font-size:20px; cursor:pointer;
+  }
+  .close-x:hover{ color:var(--amber); }
+
+  .award-row{ margin-top:24px; display:none; }
+  .award-row.show{ display:block; }
+  .award-row .label{ font-family:'Courier New', monospace; font-size:11px; color:var(--cream-dim); text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px;}
+  .award-btns{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .award-btns button{
+    background:var(--panel); border:1px solid #2A5B6B; color:var(--cream); padding:8px 14px;
+    border-radius:6px; cursor:pointer; font-family:'Georgia',serif; font-size:14px;
+  }
+  .award-btns button.correct{ border-color:var(--green); }
+  .award-btns button.correct:hover{ background:var(--green); color:var(--ink); }
+  .award-btns button.wrong{ border-color:var(--danger); }
+  .award-btns button.wrong:hover{ background:var(--danger); color:var(--ink); }
+
+  footer{ text-align:center; margin-top:34px; color:var(--cream-dim); font-family:'Courier New', monospace; font-size:11px; letter-spacing:.1em;}
+  .reset-link{ background:none; border:none; color:var(--teal-bright); cursor:pointer; font-family:'Courier New', monospace; font-size:11px; letter-spacing:.1em; text-decoration:underline; margin-left:10px;}
+
+  @media (max-width:820px){
+    .board{ grid-template-columns:repeat(5, 1fr); gap:5px; }
+    .cat-header{ font-size:10px; padding:8px 4px; min-height:54px; }
+    .clue-value{ font-size:16px; }
+    .clue-tile{ min-height:52px; }
+    h1{ font-size:28px; }
+    .clue-text{ font-size:19px; }
+    .clue-card{ padding:28px 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Bryan ISD · Aspire Science 8</div>
+    <h1>The Element <span>Board</span></h1>
+    <div class="subtitle">Periodic Table Properties · Classification of Matter · Properties of Water · Acids &amp; Bases</div>
+  </header>
+
+  <div class="scoreboard" id="scoreboard"></div>
+
+  <div class="board" id="board"></div>
+
+  <footer>
+    Click a tile to reveal a clue · click again to reveal the response · one Daily Double is hidden on the board
+    <button class="reset-link" id="resetBtn">reset game</button>
+  </footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="clue-card">
+    <button class="close-x" id="closeBtn">✕</button>
+    <div class="dd-banner" id="ddBanner">DAILY DOUBLE</div>
+    <div class="clue-cat" id="clueCat"></div>
+    <div class="clue-val-tag" id="clueValTag"></div>
+
+    <div class="wager-row" id="wagerRow">
+      <span style="font-family:'Courier New',monospace; font-size:13px; color:var(--cream-dim);">Wager:</span>
+      <input type="number" id="wagerInput" min="0" value="500">
+      <button class="btn btn-primary" id="wagerGo">Lock In</button>
+    </div>
+
+    <div class="clue-text" id="clueText"></div>
+    <div class="answer-text" id="answerText"></div>
+
+    <div class="btn-row" id="revealRow">
+      <button class="btn btn-primary" id="revealBtn">Reveal Response</button>
+    </div>
+
+    <div class="award-row" id="awardRow">
+      <div class="label">Who got it right?</div>
+      <div class="award-btns" id="awardBtns"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATEGORIES = [
+  {
+    name: "Metals &amp; Nonmetals",
+    clues: [
+      { value:100, clue:"This physical property lets metals be hammered or rolled into thin sheets without shattering.", answer:"What is malleability?" },
+      { value:200, clue:"Elements on the right side of the periodic table (aside from hydrogen) that are typically dull, brittle if solid, and poor conductors of heat and electricity.", answer:"What are nonmetals?" },
+      { value:300, clue:"Metals conduct electricity so well because their valence electrons behave this way within the metallic structure.", answer:"What is being loosely held / free to move (a \"sea of electrons\")?" },
+      { value:400, clue:"This nonmetal makes up about 21% of the atmosphere and is required for both respiration and combustion.", answer:"What is oxygen?" },
+      { value:500, clue:"This precious metal's low reactivity, resistance to corrosion, and shine make it valuable for jewelry as well as reliable contacts in modern electronics.", answer:"What is gold (or platinum)?" }
+    ]
+  },
+  {
+    name: "Metalloids &amp; Rare Earths",
+    clues: [
+      { value:100, clue:"Elements found along the \"staircase\" line on the periodic table share properties of both metals and nonmetals and are called this.", answer:"What are metalloids?" },
+      { value:200, clue:"This silvery, brittle metalloid is the primary material used to manufacture computer chips and solar panels.", answer:"What is silicon?" },
+      { value:300, clue:"This group of 17 elements, including the lanthanides, is essential for manufacturing smartphone screens, rechargeable batteries, and the magnets inside wind turbines.", answer:"What are rare earth elements?" },
+      { value:400, clue:"This metalloid, used in semiconductors and fiber-optic cable, shares its group with silicon and has the symbol Ge.", answer:"What is germanium?" },
+      { value:500, clue:"One country currently dominates global mining and refining of rare earth elements, raising supply-chain concerns for other nations that need them for EV motors and defense technology.", answer:"What is China?" }
+    ]
+  },
+  {
+    name: "Classifying Matter",
+    clues: [
+      { value:100, clue:"A substance made of only one type of atom is classified this way.", answer:"What is an element?" },
+      { value:200, clue:"This type of mixture has visibly different parts or regions throughout, like a salad or a scoop of granite.", answer:"What is a heterogeneous mixture?" },
+      { value:300, clue:"Two or more elements chemically combined in a fixed ratio form this type of pure substance.", answer:"What is a compound?" },
+      { value:400, clue:"This type of mixture looks uniform throughout, like saltwater or air — its parts can't be visually told apart even though they aren't chemically bonded.", answer:"What is a homogeneous mixture (a solution)?" },
+      { value:500, clue:"Salt water can be separated back into salt and water by evaporation, but table salt (NaCl) itself cannot be separated into sodium and chlorine that same simple way. Model / explain the difference in terms of how matter is classified.", answer:"What is: salt water is a mixture — its parts are only physically combined and keep their own properties — while salt is a compound, whose elements are chemically bonded and require a chemical reaction to separate?" }
+    ]
+  },
+  {
+    name: "Water Works",
+    clues: [
+      { value:100, clue:"This property lets water molecules stick to other polar surfaces, such as the inside wall of a plant's xylem tube or a wet windshield.", answer:"What is adhesion?" },
+      { value:200, clue:"Hydrogen bonding between water molecules at the surface creates this inward pulling force, forming a kind of \"skin\" on the water.", answer:"What is surface tension?" },
+      { value:300, clue:"This property — water molecules attracting other water molecules — is why droplets bead up on a leaf instead of spreading flat.", answer:"What is cohesion?" },
+      { value:400, clue:"This combined effect of cohesion and adhesion pulls water upward through narrow plant tubes against the pull of gravity.", answer:"What is capillary action?" },
+      { value:500, clue:"This insect relies on surface tension, along with tiny water-repellent hairs on its legs, to walk across the surface of a pond without breaking through.", answer:"What is a water strider?" }
+    ]
+  },
+  {
+    name: "Acids &amp; Bases",
+    clues: [
+      { value:100, clue:"On the pH scale, pure water sits at this neutral value.", answer:"What is 7?" },
+      { value:200, clue:"Solutions with a pH below 7 are classified this way and typically taste sour.", answer:"What are acids?" },
+      { value:300, clue:"Solutions with a pH above 7 are classified this way and often feel slippery.", answer:"What are bases?" },
+      { value:400, clue:"This weak acid, found in vinegar, gives it a pH of around 2 to 3.", answer:"What is acetic acid?" },
+      { value:500, clue:"One solution has a pH of 3 and another has a pH of 5. Because the pH scale is logarithmic, explain quantitatively how many times more acidic the pH 3 solution is.", answer:"What is 100 times more acidic (each whole pH step is a factor of 10, and the two solutions are 2 steps apart, so 10² = 100)?" }
+    ]
+  }
+];
+
+// pick a Daily Double: a random 400 or 500 tile, not in the first category
+const ddCat = 1 + Math.floor(Math.random() * (CATEGORIES.length - 1));
+const ddRow = Math.random() < 0.5 ? 3 : 4; // index of $400 or $500
+const DAILY_DOUBLE = { cat: ddCat, row: ddRow };
+
+let teams = [
+  { name:"Team 1", score:0 },
+  { name:"Team 2", score:0 }
+];
+
+let current = null; // {catIdx, rowIdx}
+
+function renderScoreboard(){
+  const el = document.getElementById('scoreboard');
+  el.innerHTML = '';
+  teams.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'team';
+    div.innerHTML = `
+      <input class="team-name" value="${t.name}" data-i="${i}">
+      <div class="team-score">${t.score}</div>
+      <div class="team-btns">
+        <button data-i="${i}" data-op="minus100">−</button>
+        <button data-i="${i}" data-op="plus100">+</button>
+      </div>
+    `;
+    el.appendChild(div);
+  });
+  const addBtn = document.createElement('div');
+  addBtn.className = 'add-team';
+  addBtn.textContent = '+';
+  addBtn.title = 'Add team';
+  addBtn.onclick = () => { teams.push({name:`Team ${teams.length+1}`, score:0}); renderScoreboard(); };
+  el.appendChild(addBtn);
+
+  el.querySelectorAll('.team-name').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      teams[e.target.dataset.i].name = e.target.value || `Team ${+e.target.dataset.i+1}`;
+      renderScoreboard();
+    });
+  });
+  el.querySelectorAll('.team-btns button').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const i = +e.target.dataset.i;
+      teams[i].score += e.target.dataset.op === 'plus100' ? 100 : -100;
+      renderScoreboard();
+    });
+  });
+}
+
+function renderBoardGrid(){
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  board.style.display = 'grid';
+  board.style.gridTemplateColumns = `repeat(${CATEGORIES.length}, 1fr)`;
+  board.style.gridTemplateRows = `auto repeat(5, 1fr)`;
+
+  CATEGORIES.forEach((cat, ci) => {
+    const h = document.createElement('div');
+    h.className = 'cat-header';
+    h.innerHTML = cat.name;
+    h.style.gridColumn = ci + 1;
+    h.style.gridRow = 1;
+    board.appendChild(h);
+  });
+
+  CATEGORIES.forEach((cat, ci) => {
+    cat.clues.forEach((clue, ri) => {
+      const tile = document.createElement('div');
+      tile.className = 'clue-tile' + (clue.done ? ' done' : '');
+      tile.style.gridColumn = ci + 1;
+      tile.style.gridRow = ri + 2;
+      tile.innerHTML = `<span class="tile-corner">${ci+1}${ri+1}</span><span class="clue-value">$${clue.value}</span>`;
+      if(!clue.done){
+        tile.addEventListener('click', () => openClue(ci, ri));
+      }
+      board.appendChild(tile);
+    });
+  });
+}
+
+function openClue(ci, ri){
+  current = { ci, ri };
+  const cat = CATEGORIES[ci];
+  const clue = cat.clues[ri];
+  const isDD = DAILY_DOUBLE.cat === ci && DAILY_DOUBLE.row === ri;
+
+  document.getElementById('clueCat').innerHTML = cat.name;
+  document.getElementById('clueValTag').textContent = `$${clue.value}`;
+  document.getElementById('clueText').textContent = clue.clue;
+  document.getElementById('answerText').textContent = clue.answer;
+  document.getElementById('answerText').classList.remove('show');
+  document.getElementById('revealRow').style.display = 'flex';
+  document.getElementById('awardRow').classList.remove('show');
+  document.getElementById('ddBanner').classList.toggle('show', isDD);
+  document.getElementById('wagerRow').classList.toggle('show', isDD);
+  document.getElementById('clueText').style.display = isDD ? 'none' : 'block';
+  document.getElementById('clueValTag').style.display = isDD ? 'none' : 'block';
+
+  if(isDD){
+    document.getElementById('wagerInput').value = clue.value;
+  }
+
+  document.getElementById('overlay').classList.add('active');
+}
+
+document.getElementById('wagerGo').addEventListener('click', () => {
+  const { ci, ri } = current;
+  const clue = CATEGORIES[ci].clues[ri];
+  const wager = parseInt(document.getElementById('wagerInput').value, 10) || 0;
+  clue.value = wager; // wagered amount becomes the point value for this clue
+  document.getElementById('clueValTag').textContent = `$${wager}`;
+  document.getElementById('clueValTag').style.display = 'block';
+  document.getElementById('clueText').style.display = 'block';
+  document.getElementById('wagerRow').classList.remove('show');
+});
+
+document.getElementById('revealBtn').addEventListener('click', () => {
+  document.getElementById('answerText').classList.add('show');
+  document.getElementById('revealRow').style.display = 'none';
+  document.getElementById('awardRow').classList.add('show');
+  renderAwardButtons();
+});
+
+function renderAwardButtons(){
+  const el = document.getElementById('awardBtns');
+  el.innerHTML = '';
+  const { ci, ri } = current;
+  const clue = CATEGORIES[ci].clues[ri];
+  teams.forEach((t, i) => {
+    const correct = document.createElement('button');
+    correct.className = 'correct';
+    correct.textContent = `${t.name} ✓`;
+    correct.onclick = () => { t.score += clue.value; finishClue(); };
+    el.appendChild(correct);
+  });
+  const noOne = document.createElement('button');
+  noOne.textContent = 'No one / skip';
+  noOne.onclick = () => finishClue();
+  el.appendChild(noOne);
+}
+
+function finishClue(){
+  const { ci, ri } = current;
+  CATEGORIES[ci].clues[ri].done = true;
+  document.getElementById('overlay').classList.remove('active');
+  renderScoreboard();
+  renderBoardGrid();
+}
+
+document.getElementById('closeBtn').addEventListener('click', () => {
+  document.getElementById('overlay').classList.remove('active');
+});
+document.getElementById('overlay').addEventListener('click', (e) => {
+  if(e.target.id === 'overlay') document.getElementById('overlay').classList.remove('active');
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  CATEGORIES.forEach(cat => cat.clues.forEach(c => c.done = false));
+  teams.forEach(t => t.score = 0);
+  renderScoreboard();
+  renderBoardGrid();
+});
+
+renderScoreboard();
+renderBoardGrid();
+</script>
+</body>
+</html>
